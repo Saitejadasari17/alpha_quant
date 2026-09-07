@@ -19,7 +19,7 @@ services:
       context: ../../frontend
       dockerfile: Dockerfile
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://localhost
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost}
     networks:
       - app-network
 
@@ -28,15 +28,25 @@ services:
       context: ../../backend/services/user-service
       dockerfile: Dockerfile
     environment:
+      NODE_ENV: development
       PORT: 8000
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/financial_wellness
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: change-this-secret
+      JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-me}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
       INIT_DB_SCHEMA: "true"
       ALLOWED_ORIGINS: http://localhost,http://localhost:3000
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:8000/health >/dev/null 2>&1 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
     ports:
       - "8000:8000"
     networks:
@@ -47,18 +57,25 @@ services:
       context: ../../backend/services/finance-service
       dockerfile: Dockerfile
     environment:
+      NODE_ENV: development
       PORT: 8001
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/financial_wellness
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: change-this-secret
+      JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-me}
       INIT_DB_SCHEMA: "true"
       ALLOWED_ORIGINS: http://localhost,http://localhost:3000
       MONGODB_URL: mongodb://mongo:27017
       MONGODB_DB: financial_wellness_logs
+      NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification_queue}
     depends_on:
-      - postgres
-      - redis
-      - mongo
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     ports:
       - "8001:8001"
     networks:
@@ -75,8 +92,12 @@ services:
     ports:
       - "8002:8002"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -85,13 +106,21 @@ services:
       context: ../../backend/services/notification-service
       dockerfile: Dockerfile
     environment:
+      NODE_ENV: development
       PORT: 8003
       REDIS_URL: redis://redis:6379
-      NOTIFICATION_QUEUE: notification_queue
+      NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification_queue}
+      SENDER_EMAIL: ${SENDER_EMAIL:-no-reply@financialwellness.local}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
     ports:
       - "8003:8003"
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -105,6 +134,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financial_wellness"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - app-network
 
@@ -114,6 +148,11 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - app-network
 
@@ -123,6 +162,11 @@ services:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval \"db.adminCommand({ ping: 1 }).ok\" | grep 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     networks:
       - app-network
 

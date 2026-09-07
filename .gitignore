@@ -1,54 +1,50 @@
-cat > .gitignore << 'EOF'
 # Dependencies
 node_modules/
-__pycache__/
-*.pyc
+**/node_modules/
+
+# Python environments and caches
 .venv/
 venv/
 env/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
 
-# Environment variables
+# Environment files: keep examples under version control.
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
-# Build outputs
+# Build output and generated artifacts
 .next/
+**/.next/
 dist/
+**/dist/
 build/
+*.tsbuildinfo
 *.pkl
 *.h5
 *.joblib
 
-# IDEs
+# Logs and local databases
+*.log
+logs/
+*.db
+*.sqlite
+
+# Editors and operating systems
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-logs/
-
-# Database
-*.db
-*.sqlite
-
-# Secrets
+# Secrets and local deployment overrides
 *.pem
 *.key
 secrets.yaml
-
-# Testing
-.coverage
-htmlcov/
-.pytest_cache/
-
-# Docker
-*.env
 docker-compose.override.yml
-EOF

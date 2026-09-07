@@ -1,11 +1,26 @@
 const nodemailer = require("nodemailer");
-const { senderEmail } = require("../config");
+const {
+  senderEmail,
+  smtpHost,
+  smtpPort,
+  smtpSecure,
+  smtpUser,
+  smtpPassword,
+} = require("../config");
 
-const transporter = nodemailer.createTransport({
-  streamTransport: true,
-  newline: "unix",
-  buffer: true,
-});
+const smtpConfigured = Boolean(smtpHost && smtpUser && smtpPassword);
+const transporter = smtpConfigured
+  ? nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: { user: smtpUser, pass: smtpPassword },
+    })
+  : nodemailer.createTransport({
+      streamTransport: true,
+      newline: "unix",
+      buffer: true,
+    });
 
 async function sendEmail({ to, subject, body }) {
   const message = {
@@ -15,7 +30,11 @@ async function sendEmail({ to, subject, body }) {
     text: body,
   };
   const info = await transporter.sendMail(message);
-  console.log(`Email queued to ${to}. bytes=${info.message.length}`);
+  if (smtpConfigured) {
+    console.log(`Email sent to ${to}. messageId=${info.messageId}`);
+  } else {
+    console.log(`Email simulated for ${to}. Configure SMTP_HOST, SMTP_USER and SMTP_PASSWORD to send it.`);
+  }
 }
 
 async function sendSms({ to, body }) {

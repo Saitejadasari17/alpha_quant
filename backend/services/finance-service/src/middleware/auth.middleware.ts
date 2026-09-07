@@ -20,10 +20,13 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   }
 
   const token = authHeader.substring(7);
-  const jwtSecret = process.env.JWT_SECRET || 'fallback-secret-key';
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!jwtSecret && process.env.NODE_ENV === 'production') {
+    return res.status(500).json({ error: 'JWT_SECRET is not configured' });
+  }
 
   try {
-    const payload = jwt.verify(token, jwtSecret) as TokenPayload;
+    const payload = jwt.verify(token, jwtSecret || 'development-only-secret') as TokenPayload;
     req.userId = payload.userId;
     return next();
   } catch (_error) {

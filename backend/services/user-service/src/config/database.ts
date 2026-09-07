@@ -12,11 +12,11 @@ export const db = new Pool({
 
 // Test database connection
 db.on('connect', () => {
-  console.log('✅ Connected to PostgreSQL');
+  console.log(' Connected to PostgreSQL');
 });
 
 db.on('error', (err:Error) => {
-  console.error('❌ PostgreSQL connection error:', err);
+  console.error(' PostgreSQL connection error:', err);
 });
 
 // Redis Connection

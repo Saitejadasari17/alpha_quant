@@ -81,16 +81,37 @@ router.post('/transactions', authMiddleware, async (req: Request, res: Response)
       const monthlySpending = Number(spendingRow.rows[0]?.monthly_spending || 0);
 
       if (monthlySpending > budgetLimit) {
-        await redis.lpush(
-          process.env.NOTIFICATION_QUEUE || 'notification_queue',
-          JSON.stringify({
-            type: 'budget_alert',
-            userId,
-            category,
-            spent: monthlySpending,
-            limit: budgetLimit,
-          }),
-        );
+        // Notifications are best-effort; a queue outage must not fail a saved transaction.
+        try {
+          const recipientResult = await db.query(
+            `SELECT u.email, p.phone
+             FROM users u
+             LEFT JOIN user_profiles p ON p.user_id = u.id
+             WHERE u.id = $1
+             LIMIT 1`,
+            [userId],
+          );
+          const recipient = recipientResult.rows[0];
+
+          if (!recipient?.email && !recipient?.phone) {
+            console.warn(`Budget alert skipped: no contact details for user ${userId}`);
+          } else {
+            await redis.lpush(
+              process.env.NOTIFICATION_QUEUE || 'notification_queue',
+              JSON.stringify({
+                type: 'budget_alert',
+                userId,
+                email: recipient.email || undefined,
+                phone: recipient.phone || undefined,
+                category,
+                spent: monthlySpending,
+                limit: budgetLimit,
+              }),
+            );
+          }
+        } catch (notificationError) {
+          console.error('Unable to enqueue budget alert:', notificationError);
+        }
       }
     }
 
