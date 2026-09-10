@@ -1,0 +1,50 @@
+[
+  {
+    "id": "car_purchase_001",
+    "input": "Can I afford a 15 lakh car next year?",
+    "expected_capability": "Simulation",
+    "expected_tools": ["get_financial_profile", "calculate_cash_flow", "simulate_financial_scenario"]
+  },
+  {
+    "id": "car_purchase_002",
+    "input": "Should I buy a 8 lakh car with 2 lakh down payment?",
+    "expected_capability": "Simulation",
+    "expected_tools": ["get_financial_profile", "calculate_cash_flow", "simulate_financial_scenario"]
+  },
+  {
+    "id": "home_loan_001",
+    "input": "Can I afford a 50 lakh home loan at 8.5% interest?",
+    "expected_capability": "Simulation",
+    "expected_tools": ["get_financial_profile", "calculate_cash_flow", "simulate_financial_scenario"]
+  },
+  {
+    "id": "goal_check_001",
+    "input": "What is the status of my savings goals?",
+    "expected_capability": "Goals",
+    "expected_tools": ["get_goal_status", "calculate_cash_flow"]
+  },
+  {
+    "id": "goal_check_002",
+    "input": "How many months will it take to complete my house down payment goal?",
+    "expected_capability": "Goals",
+    "expected_tools": ["get_goal_status", "calculate_cash_flow"]
+  },
+  {
+    "id": "health_analysis_001",
+    "input": "How is my overall financial health score looking?",
+    "expected_capability": "Financial Analysis",
+    "expected_tools": ["get_financial_profile", "calculate_financial_health", "get_spending_trends", "search_financial_knowledge"]
+  },
+  {
+    "id": "spending_trends_001",
+    "input": "Where am I spending most of my money this month?",
+    "expected_capability": "Financial Analysis",
+    "expected_tools": ["get_financial_profile", "calculate_financial_health", "get_spending_trends", "search_financial_knowledge"]
+  },
+  {
+    "id": "emergency_fund_001",
+    "input": "How much should I keep in my emergency fund?",
+    "expected_capability": "Financial Analysis",
+    "expected_tools": ["get_financial_profile", "calculate_financial_health", "get_spending_trends", "search_financial_knowledge"]
+  }
+]

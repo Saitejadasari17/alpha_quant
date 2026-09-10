@@ -1,14 +1,22 @@
-
 import express, { Request, Response } from 'express';
 import { authMiddleware } from '../middleware/auth.middleware';
 import { db } from '../config/database';
 
 const router = express.Router();
 
+function formatUser(raw: any) {
+  if (!raw) return null;
+  return {
+    ...raw,
+    monthlyIncome: Number(raw.monthlyIncome ?? raw.monthly_income ?? 0),
+    age: raw.age ? Number(raw.age) : null,
+  };
+}
+
 // Get current user
 router.get('/me', authMiddleware, async (req: Request, res: Response) => {
   try {
-    res.json({ success: true, data: req.user });
+    res.json({ success: true, data: formatUser(req.user) });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -17,7 +25,7 @@ router.get('/me', authMiddleware, async (req: Request, res: Response) => {
 
 router.get('/profile', authMiddleware, async (req: Request, res: Response) => {
   try {
-    res.json({ success: true, data: req.user });
+    res.json({ success: true, data: formatUser(req.user) });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({ error: 'Server error' });
@@ -67,7 +75,7 @@ router.put('/me', authMiddleware, async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    res.json({ success: true, data: result.rows[0] });
+    res.json({ success: true, data: formatUser(result.rows[0]) });
   } catch (error) {
     console.error('Update user error:', error);
     res.status(500).json({ error: 'Server error' });

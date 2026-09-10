@@ -10,13 +10,6 @@ const router = Router();
 router.get('/transactions', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.userId!;
-    const cacheKey = `finance:transactions:${userId}`;
-    const cached = await redis.get(cacheKey);
-
-    if (cached) {
-      return res.status(200).json(JSON.parse(cached));
-    }
-
     const result = await db.query(
       `SELECT id, user_id, amount, category, description, type, transaction_date, created_at
        FROM transactions
@@ -25,9 +18,7 @@ router.get('/transactions', authMiddleware, async (req: Request, res: Response) 
       [userId],
     );
 
-    const payload = { success: true, data: result.rows };
-    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 120);
-    return res.status(200).json(payload);
+    return res.status(200).json({ success: true, data: result.rows });
   } catch (error) {
     console.error('Get transactions error:', error);
     return res.status(500).json({ error: 'Server error' });
@@ -81,7 +72,6 @@ router.post('/transactions', authMiddleware, async (req: Request, res: Response)
       const monthlySpending = Number(spendingRow.rows[0]?.monthly_spending || 0);
 
       if (monthlySpending > budgetLimit) {
-        // Notifications are best-effort; a queue outage must not fail a saved transaction.
         try {
           const recipientResult = await db.query(
             `SELECT u.email, p.phone
@@ -93,9 +83,7 @@ router.post('/transactions', authMiddleware, async (req: Request, res: Response)
           );
           const recipient = recipientResult.rows[0];
 
-          if (!recipient?.email && !recipient?.phone) {
-            console.warn(`Budget alert skipped: no contact details for user ${userId}`);
-          } else {
+          if (recipient?.email || recipient?.phone) {
             await redis.lpush(
               process.env.NOTIFICATION_QUEUE || 'notification_queue',
               JSON.stringify({
@@ -178,6 +166,8 @@ router.post('/budgets', authMiddleware, async (req: Request, res: Response) => {
       [userId, category, limit],
     );
 
+    await redis.del(`finance:health:${userId}`);
+
     return res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
     console.error('Create budget error:', error);
@@ -256,17 +246,8 @@ router.post('/loans', authMiddleware, async (req: Request, res: Response) => {
 router.get('/health-score', authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.userId!;
-    const cacheKey = `finance:health:${userId}`;
-    const cached = await redis.get(cacheKey);
-
-    if (cached) {
-      return res.status(200).json(JSON.parse(cached));
-    }
-
     const summary = await calculateFinancialHealth(userId);
-    const payload = { success: true, data: summary };
-    await redis.set(cacheKey, JSON.stringify(payload), 'EX', 300);
-    return res.status(200).json(payload);
+    return res.status(200).json({ success: true, data: summary });
   } catch (error) {
     console.error('Financial health error:', error);
     return res.status(500).json({ error: 'Server error' });
@@ -335,6 +316,8 @@ router.post('/goals', authMiddleware, async (req: Request, res: Response) => {
        RETURNING id, user_id, goal_name, target_amount, target_date, current_amount, created_at`,
       [userId, resolvedName, resolvedTargetAmount, resolvedTargetDate ?? '', resolvedCurrentAmount],
     );
+
+    await redis.del(`finance:health:${userId}`);
 
     return res.status(201).json({ success: true, data: result.rows[0] });
   } catch (error) {
