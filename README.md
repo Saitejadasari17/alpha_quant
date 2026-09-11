@@ -5,7 +5,7 @@
 
 ---
 
-## 🌟 Executive Summary & Metrics
+##  Executive Summary & Metrics
 
 ```text
 ========================================================================
@@ -22,7 +22,7 @@
 
 ---
 
-## 🏗 System Architecture
+##  System Architecture
 
 AlphaQuant uses an event-driven, microservice architecture fronted by an Nginx reverse proxy. The **Agent Service** acts as an autonomous orchestrator across existing domain services (`User Service`, `Finance Service`, and `ML Service`) without duplicating business logic.
 
@@ -54,7 +54,7 @@ graph TD
 
 ---
 
-## 🔄 Agent Execution & Digital Twin Flow
+##  Agent Execution & Digital Twin Flow
 
 ```text
 User Question / Query
@@ -92,7 +92,7 @@ User Question / Query
 
 ---
 
-## 💎 Signature Features
+##  Signature Features
 
 ### 1. Deterministic Financial Digital Twin Engine
 - **Zero LLM Mathematics**: Financial calculations (EMI, Debt-to-Income ratio, monthly surplus deltas, health score shifts, and goal delays) are calculated using 100% deterministic code.
@@ -107,9 +107,9 @@ User Question / Query
 
 ### 3. Risk-Tiered Tool Guardrails
 Explicit permission taxonomy prevents unauthorized actions:
-- 🟢 **AUTOMATIC**: Read data (`get_financial_profile`, `get_transaction_summary`, `calculate_cash_flow`, `simulate_loan`, `simulate_financial_scenario`, `search_financial_knowledge`).
-- 🟡 **CONFIRMATION_REQUIRED**: Mutate state (`create_goal`, `create_transaction`, `update_budget`).
-- 🔴 **FORBIDDEN**: High-risk actions (`move_money`, `execute_wire_transfer`, `delete_account`).
+-  **AUTOMATIC**: Read data (`get_financial_profile`, `get_transaction_summary`, `calculate_cash_flow`, `simulate_loan`, `simulate_financial_scenario`, `search_financial_knowledge`).
+- **CONFIRMATION_REQUIRED**: Mutate state (`create_goal`, `create_transaction`, `update_budget`).
+-  **FORBIDDEN**: High-risk actions (`move_money`, `execute_wire_transfer`, `delete_account`).
 
 ### 4. RAG with PostgreSQL `pgvector`
 - Uses vector similarity search over PostgreSQL `pgvector` for financial concepts (emergency fund 3-6 month rule, 50/30/20 budget method, DTI limits, 20/4/10 car buying rule).
@@ -120,7 +120,7 @@ Explicit permission taxonomy prevents unauthorized actions:
 
 ---
 
-## 🛠 Technology Stack
+##  Technology Stack
 
 | Layer | Technology |
 |---|---|
@@ -135,7 +135,7 @@ Explicit permission taxonomy prevents unauthorized actions:
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```text
 financial_wellness_platform/
@@ -178,7 +178,7 @@ financial_wellness_platform/
 
 ---
 
-## 🚀 Quickstart & Setup
+##  Quickstart & Setup
 
 ### Prerequisites
 - Docker & Docker Compose installed
@@ -207,6 +207,6 @@ cmd /c "set PYTHONPATH=. && python -m app.evaluation.runner"
 
 ---
 
-## 📖 The Project Narrative
+##  The Project Narrative
 
 > *"AlphaQuant started as a distributed financial wellness platform. I evolved it into an agentic decision-support system rather than simply adding an LLM chatbot. The agent can decompose financial questions, call typed tools exposed by existing microservices, run deterministic financial simulations, retrieve relevant financial knowledge through RAG, and produce an explainable recommendation. I built an evaluation harness to measure tool selection and task completion and added risk-based guardrails so the agent cannot perform unauthorized financial actions."*
