@@ -207,6 +207,3 @@ cmd /c "set PYTHONPATH=. && python -m app.evaluation.runner"
 
 ---
 
-##  The Project Narrative
-
-> *"AlphaQuant started as a distributed financial wellness platform. I evolved it into an agentic decision-support system rather than simply adding an LLM chatbot. The agent can decompose financial questions, call typed tools exposed by existing microservices, run deterministic financial simulations, retrieve relevant financial knowledge through RAG, and produce an explainable recommendation. I built an evaluation harness to measure tool selection and task completion and added risk-based guardrails so the agent cannot perform unauthorized financial actions."*
