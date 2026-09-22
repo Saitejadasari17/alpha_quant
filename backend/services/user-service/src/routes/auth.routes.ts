@@ -22,16 +22,17 @@ router.post('/register', async (req: Request, res: Response) => {
         fullName?: string;
         monthlyIncome?: number;
       };
-    const resolvedName = fullName || name;
+    const resolvedName = (fullName || name || '').trim();
     const resolvedMonthlyIncome = monthlyIncome ?? monthly_income ?? 0;
+    const normalizedEmail = (email || '').trim().toLowerCase();
 
-    if (!email || !resolvedName || !password) {
-      return res.status(400).json({ error: 'Email, name and password are required' });
+    if (!normalizedEmail || !resolvedName || !password) {
+      return res.status(400).json({ success: false, error: 'Email, name and password are required' });
     }
 
-    const existingUser = await db.query('SELECT id FROM users WHERE email = $1', [email]);
+    const existingUser = await db.query('SELECT id FROM users WHERE LOWER(email) = LOWER($1)', [normalizedEmail]);
     if (existingUser.rows.length > 0) {
-      return res.status(409).json({ error: 'User already exists' });
+      return res.status(409).json({ success: false, error: 'User with this email already exists' });
     }
 
     const password_hash = await hashPassword(password);
@@ -40,7 +41,7 @@ router.post('/register', async (req: Request, res: Response) => {
       `INSERT INTO users (email, name, password_hash, monthly_income, age)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id, email, name, monthly_income, age, created_at`,
-      [email, resolvedName, password_hash, resolvedMonthlyIncome, age ?? null]
+      [normalizedEmail, resolvedName, password_hash, resolvedMonthlyIncome, age ?? null]
     );
 
     const user = mapUserRowToResponse(result.rows[0]);
@@ -49,32 +50,33 @@ router.post('/register', async (req: Request, res: Response) => {
     return res.status(201).json({ success: true, data: { user, token } });
   } catch (error) {
     console.error('Register error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error during registration' });
   }
 });
 
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const { email, password }: LoginDTO = req.body;
+    const normalizedEmail = (email || '').trim().toLowerCase();
 
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and password are required' });
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({ success: false, error: 'Email and password are required' });
     }
 
     const result = await db.query(
-      'SELECT id, email, name, password_hash, monthly_income, age, created_at FROM users WHERE email = $1',
-      [email]
+      'SELECT id, email, name, password_hash, monthly_income, age, created_at FROM users WHERE LOWER(email) = LOWER($1)',
+      [normalizedEmail]
     );
 
     if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     const userRow = result.rows[0];
     const isValidPassword = await verifyPassword(password, userRow.password_hash);
 
     if (!isValidPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ success: false, error: 'Invalid credentials' });
     }
 
     const user = mapUserRowToResponse(userRow);
@@ -83,7 +85,7 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.status(200).json({ success: true, data: { user, token } });
   } catch (error) {
     console.error('Login error:', error);
-    return res.status(500).json({ error: 'Server error' });
+    return res.status(500).json({ success: false, error: 'Server error during login' });
   }
 });
 
