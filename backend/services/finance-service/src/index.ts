@@ -10,14 +10,10 @@ dotenv.config();
 
 const app = express();
 const PORT = Number(process.env.PORT || 8001);
-const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
-  .split(',')
-  .map((origin) => origin.trim())
-  .filter(Boolean);
 
 app.use(
   cors({
-    origin: ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : true,
+    origin: true,
     credentials: true,
   }),
 );

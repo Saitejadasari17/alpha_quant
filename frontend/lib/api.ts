@@ -1,5 +1,5 @@
 import axios, { AxiosError } from "axios";
-import { API_BASE_URL, AUTH_TOKEN_KEY } from "./constants";
+import { API_BASE_URL, AUTH_TOKEN_KEY, getApiBaseUrl } from "./constants";
 import { AuthPayload, LoginPayload, RegisterPayload, User } from "../types/user";
 import { CreateTransactionPayload, Transaction } from "../types/transaction";
 
@@ -17,6 +17,7 @@ const apiClient = axios.create({
 });
 
 apiClient.interceptors.request.use((config) => {
+  config.baseURL = getApiBaseUrl();
   if (typeof window !== "undefined") {
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
@@ -28,9 +29,34 @@ apiClient.interceptors.request.use((config) => {
 
 function mapAxiosError(error: unknown): never {
   if (error instanceof AxiosError) {
-    const status = error.response?.status;
-    throw new Error(status ? `Request failed with status ${status}` : "Request failed");
+    const serverMessage =
+      error.response?.data?.error ||
+      error.response?.data?.message ||
+      (typeof error.response?.data === "string" ? error.response.data : null);
+
+    if (serverMessage) {
+      throw new Error(serverMessage);
+    }
+
+    if (error.response?.status) {
+      throw new Error(`Request failed with status ${error.response.status}`);
+    }
+
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      throw new Error("Request timed out. Please check backend service connectivity.");
+    }
+
+    if (!error.response) {
+      throw new Error("Unable to connect to server. Please check your internet connection or service status.");
+    }
+
+    throw new Error(error.message || "Request failed");
   }
+
+  if (error instanceof Error) {
+    throw error;
+  }
+
   throw new Error("Unexpected request error");
 }
 
