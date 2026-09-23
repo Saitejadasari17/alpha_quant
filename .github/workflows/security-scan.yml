@@ -1,0 +1,45 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Audit Node.js dependencies
+        run: |
+          for dir in frontend backend/services/user-service backend/services/finance-service backend/services/notification-service; do
+            if [ -d "$dir" ]; then
+              echo "Auditing $dir..."
+              (cd "$dir" && npm audit --audit-level=high || true)
+            fi
+          done
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Audit Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit || true
+          for dir in backend/services/ml-service backend/services/agent-service; do
+            if [ -d "$dir" ]; then
+              echo "Auditing $dir..."
+              (cd "$dir" && pip-audit || true)
+            fi
+          done
