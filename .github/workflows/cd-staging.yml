@@ -17,7 +17,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check deployment secrets
+        id: check_secrets
+        run: |
+          if [ -z "${{ secrets.STAGING_HOST }}" ]; then
+            echo "::warning ::STAGING_HOST is not set in GitHub secrets. Skipping SSH deployment."
+            echo "has_secrets=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_secrets=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Deploy to staging host via SSH
+        if: steps.check_secrets.outputs.has_secrets == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.STAGING_HOST }}
@@ -41,5 +52,6 @@ jobs:
             ./infrastructure/scripts/deploy.sh staging
 
       - name: Health check
+        if: steps.check_secrets.outputs.has_secrets == 'true' && secrets.STAGING_HEALTHCHECK_URL != ''
         run: |
           curl -fsS "${{ secrets.STAGING_HEALTHCHECK_URL }}" >/dev/null

@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile
     command: sh -c "npm run build && npm run start"
     environment:
-      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:?Set NEXT_PUBLIC_API_BASE_URL in infrastructure/docker/.env}
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost}
     restart: unless-stopped
     networks:
       - app-network
@@ -36,7 +36,7 @@ services:
       PORT: 8000
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/financial_wellness
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in infrastructure/docker/.env}
+      JWT_SECRET: ${JWT_SECRET:-default_jwt_secret_change_in_production}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
       INIT_DB_SCHEMA: "true"
       ALLOWED_ORIGINS: http://localhost
@@ -65,7 +65,7 @@ services:
       PORT: 8001
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/financial_wellness
       REDIS_URL: redis://redis:6379
-      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in infrastructure/docker/.env}
+      JWT_SECRET: ${JWT_SECRET:-default_jwt_secret_change_in_production}
       INIT_DB_SCHEMA: "true"
       ALLOWED_ORIGINS: http://localhost
       MONGODB_URL: mongodb://mongo:27017
@@ -112,12 +112,12 @@ services:
       PORT: 8003
       REDIS_URL: redis://redis:6379
       NOTIFICATION_QUEUE: ${NOTIFICATION_QUEUE:-notification_queue}
-      SENDER_EMAIL: ${SENDER_EMAIL:?Set SENDER_EMAIL in infrastructure/docker/.env}
-      SMTP_HOST: ${SMTP_HOST:?Set SMTP_HOST in infrastructure/docker/.env}
+      SENDER_EMAIL: ${SENDER_EMAIL:-noreply@example.com}
+      SMTP_HOST: ${SMTP_HOST:-localhost}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_SECURE: ${SMTP_SECURE:-false}
-      SMTP_USER: ${SMTP_USER:?Set SMTP_USER in infrastructure/docker/.env}
-      SMTP_PASSWORD: ${SMTP_PASSWORD:?Set SMTP_PASSWORD in infrastructure/docker/.env}
+      SMTP_USER: ${SMTP_USER:-dummy_smtp_user}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-dummy_smtp_password}
     depends_on:
       redis:
         condition: service_healthy
