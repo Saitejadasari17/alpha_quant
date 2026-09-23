@@ -31,9 +31,9 @@ jobs:
         if: steps.check_secrets.outputs.has_secrets == 'true'
         uses: appleboy/ssh-action@v1.2.0
         with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
+          host: ${{ secrets.PROD_HOST || '127.0.0.1' }}
+          username: ${{ secrets.PROD_USER || 'deploy' }}
+          key: ${{ secrets.PROD_SSH_KEY || 'dummy' }}
           port: 22
           script_stop: true
           script: |
