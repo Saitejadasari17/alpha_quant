@@ -12,41 +12,34 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: staging
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy to staging host via SSH
-        if: ${{ secrets.STAGING_HOST != '' }}
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USER }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          port: 22
-          script_stop: true
-          script: |
-            set -e
-            export APP_DIR="${{ secrets.STAGING_APP_DIR }}"
-            export BRANCH="develop"
-            if [ ! -d "$APP_DIR/.git" ]; then
-              echo "App directory is not a git repo: $APP_DIR"
-              exit 1
-            fi
-            cd "$APP_DIR"
-            git fetch --all
-            git checkout "$BRANCH"
-            git reset --hard "origin/$BRANCH"
-            chmod +x infrastructure/scripts/deploy.sh || true
-            ./infrastructure/scripts/deploy.sh staging
-
-      - name: Skip deployment notice
-        if: ${{ secrets.STAGING_HOST == '' }}
+        env:
+          STAGING_HOST: ${{ secrets.STAGING_HOST }}
+          STAGING_USER: ${{ secrets.STAGING_USER }}
+          STAGING_SSH_KEY: ${{ secrets.STAGING_SSH_KEY }}
+          STAGING_APP_DIR: ${{ secrets.STAGING_APP_DIR }}
+          STAGING_HEALTHCHECK_URL: ${{ secrets.STAGING_HEALTHCHECK_URL }}
         run: |
-          echo "STAGING_HOST secret is not configured in GitHub repository secrets. SSH deployment skipped."
+          if [ -z "$STAGING_HOST" ] || [ -z "$STAGING_USER" ] || [ -z "$STAGING_SSH_KEY" ]; then
+            echo "::warning ::STAGING_HOST, STAGING_USER, or STAGING_SSH_KEY is not set in GitHub repository secrets. Skipping SSH deployment."
+            exit 0
+          fi
 
-      - name: Health check
-        if: ${{ secrets.STAGING_HOST != '' && secrets.STAGING_HEALTHCHECK_URL != '' }}
-        run: |
-          curl -fsS "${{ secrets.STAGING_HEALTHCHECK_URL }}" >/dev/null
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "$STAGING_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$STAGING_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          SSH_CMD="set -e; export APP_DIR='${STAGING_APP_DIR:-/var/www/alpha_quant}'; export BRANCH='develop'; if [ ! -d \"\$APP_DIR/.git\" ]; then echo \"App directory is not a git repo: \$APP_DIR\"; exit 1; fi; cd \"\$APP_DIR\"; git fetch --all; git checkout \$BRANCH; git reset --hard origin/\$BRANCH; chmod +x infrastructure/scripts/deploy.sh || true; ./infrastructure/scripts/deploy.sh staging"
+
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_rsa "$STAGING_USER@$STAGING_HOST" "$SSH_CMD"
+
+          if [ -n "$STAGING_HEALTHCHECK_URL" ]; then
+            echo "Running health check on $STAGING_HEALTHCHECK_URL..."
+            curl -fsS "$STAGING_HEALTHCHECK_URL" >/dev/null
+          fi

@@ -12,41 +12,34 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy to production host via SSH
-        if: ${{ secrets.PROD_HOST != '' }}
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          port: 22
-          script_stop: true
-          script: |
-            set -e
-            export APP_DIR="${{ secrets.PROD_APP_DIR }}"
-            export BRANCH="main"
-            if [ ! -d "$APP_DIR/.git" ]; then
-              echo "App directory is not a git repo: $APP_DIR"
-              exit 1
-            fi
-            cd "$APP_DIR"
-            git fetch --all
-            git checkout "$BRANCH"
-            git reset --hard "origin/$BRANCH"
-            chmod +x infrastructure/scripts/deploy.sh || true
-            ./infrastructure/scripts/deploy.sh production
-
-      - name: Skip deployment notice
-        if: ${{ secrets.PROD_HOST == '' }}
+        env:
+          PROD_HOST: ${{ secrets.PROD_HOST }}
+          PROD_USER: ${{ secrets.PROD_USER }}
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+          PROD_APP_DIR: ${{ secrets.PROD_APP_DIR }}
+          PROD_HEALTHCHECK_URL: ${{ secrets.PROD_HEALTHCHECK_URL }}
         run: |
-          echo "PROD_HOST secret is not configured in GitHub repository secrets. SSH deployment skipped."
+          if [ -z "$PROD_HOST" ] || [ -z "$PROD_USER" ] || [ -z "$PROD_SSH_KEY" ]; then
+            echo "::warning ::PROD_HOST, PROD_USER, or PROD_SSH_KEY is not set in GitHub repository secrets. Skipping SSH deployment."
+            exit 0
+          fi
 
-      - name: Health check
-        if: ${{ secrets.PROD_HOST != '' && secrets.PROD_HEALTHCHECK_URL != '' }}
-        run: |
-          curl -fsS "${{ secrets.PROD_HEALTHCHECK_URL }}" >/dev/null
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          echo "$PROD_SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "$PROD_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          SSH_CMD="set -e; export APP_DIR='${PROD_APP_DIR:-/var/www/alpha_quant}'; export BRANCH='main'; if [ ! -d \"\$APP_DIR/.git\" ]; then echo \"App directory is not a git repo: \$APP_DIR\"; exit 1; fi; cd \"\$APP_DIR\"; git fetch --all; git checkout \$BRANCH; git reset --hard origin/\$BRANCH; chmod +x infrastructure/scripts/deploy.sh || true; ./infrastructure/scripts/deploy.sh production"
+
+          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_rsa "$PROD_USER@$PROD_HOST" "$SSH_CMD"
+
+          if [ -n "$PROD_HEALTHCHECK_URL" ]; then
+            echo "Running health check on $PROD_HEALTHCHECK_URL..."
+            curl -fsS "$PROD_HEALTHCHECK_URL" >/dev/null
+          fi
