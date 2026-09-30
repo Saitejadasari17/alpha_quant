@@ -157,6 +157,16 @@ export const api = {
   register: (payload: RegisterPayload) =>
     unwrap<AuthPayload>(apiClient.post("/api/v1/users/auth/register", payload)),
 
+  forgotPassword: (email: string) =>
+    unwrap<{ message: string; resetToken?: string }>(
+      apiClient.post("/api/v1/users/auth/forgot-password", { email }),
+    ),
+
+  resetPassword: (payload: { token: string; newPassword: string }) =>
+    unwrap<{ message: string }>(
+      apiClient.post("/api/v1/users/auth/reset-password", payload),
+    ),
+
   getProfile: () => unwrap<User>(apiClient.get("/api/v1/users/profile")),
 
   updateProfile: (payload: UpdateProfilePayload) =>

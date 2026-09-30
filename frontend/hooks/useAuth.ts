@@ -68,6 +68,32 @@ export function useAuth() {
     }
   };
 
+  const forgotPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      const response = await api.forgotPassword(email);
+      return response;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to request password reset.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (payload: { token: string; newPassword: string }) => {
+    try {
+      setLoading(true);
+      const response = await api.resetPassword(payload);
+      return response;
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Password reset failed.");
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const logout = () => {
     reset();
     if (typeof window !== "undefined") {
@@ -105,6 +131,8 @@ export function useAuth() {
     isAuthenticated,
     login,
     register,
+    forgotPassword,
+    resetPassword,
     logout,
     clearError,
     loadProfile,

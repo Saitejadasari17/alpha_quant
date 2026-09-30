@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router, Request, Response } from 'express';
 import { db } from '../config/database';
 import { hashPassword, verifyPassword, generateToken } from '../utils/auth';
@@ -91,6 +92,104 @@ router.post('/login', async (req: Request, res: Response) => {
 
 router.get('/me', authMiddleware, (req: Request, res: Response) => {
   return res.status(200).json({ success: true, data: req.user });
+});
+
+router.post('/forgot-password', async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const normalizedEmail = (email || '').trim().toLowerCase();
+
+    if (!normalizedEmail) {
+      return res.status(400).json({ success: false, error: 'Email address is required' });
+    }
+
+    const userResult = await db.query(
+      'SELECT id, email FROM users WHERE LOWER(email) = LOWER($1)',
+      [normalizedEmail]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'If an account exists with this email, password reset instructions have been generated.',
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 3600000); // 1 hour from now
+
+    await db.query(
+      `UPDATE users
+       SET reset_password_token = $1,
+           reset_password_expires = $2,
+           updated_at = NOW()
+       WHERE id = $3`,
+      [resetToken, expires, userResult.rows[0].id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password reset token generated successfully.',
+      resetToken,
+      data: {
+        message: 'Password reset token generated successfully.',
+        resetToken,
+      },
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ success: false, error: 'Server error during forgot password' });
+  }
+});
+
+router.post('/reset-password', async (req: Request, res: Response) => {
+  try {
+    const { token, newPassword } = req.body;
+    const normalizedToken = (token || '').trim();
+
+    if (!normalizedToken || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Reset token and new password are required' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
+    }
+
+    const userResult = await db.query(
+      `SELECT id FROM users
+       WHERE reset_password_token = $1
+         AND reset_password_expires > NOW()`,
+      [normalizedToken]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ success: false, error: 'Invalid or expired password reset token' });
+    }
+
+    const userId = userResult.rows[0].id;
+    const password_hash = await hashPassword(newPassword);
+
+    await db.query(
+      `UPDATE users
+       SET password_hash = $1,
+           reset_password_token = NULL,
+           reset_password_expires = NULL,
+           updated_at = NOW()
+       WHERE id = $2`,
+      [password_hash, userId]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Password has been reset successfully. You can now sign in with your new password.',
+      data: {
+        message: 'Password has been reset successfully. You can now sign in with your new password.',
+      },
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({ success: false, error: 'Server error during reset password' });
+  }
 });
 
 export default router;

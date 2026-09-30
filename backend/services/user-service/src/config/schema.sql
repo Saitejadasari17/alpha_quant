@@ -10,9 +10,14 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   monthly_income NUMERIC(12, 2) NOT NULL DEFAULT 0 CHECK (monthly_income >= 0),
   age INTEGER CHECK (age IS NULL OR age > 0),
+  reset_password_token TEXT,
+  reset_password_expires TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_token TEXT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS reset_password_expires TIMESTAMPTZ;
 
 CREATE TABLE IF NOT EXISTS user_profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

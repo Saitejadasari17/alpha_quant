@@ -41,14 +41,24 @@ export default function LoginPage() {
           placeholder="you@example.com"
           onChange={(event) => setEmail(event.target.value)}
         />
-        <Input
-          required
-          type="password"
-          label="Password"
-          value={password}
-          placeholder="********"
-          onChange={(event) => setPassword(event.target.value)}
-        />
+        <div className="space-y-1">
+          <Input
+            required
+            type="password"
+            label="Password"
+            value={password}
+            placeholder="********"
+            onChange={(event) => setPassword(event.target.value)}
+          />
+          <div className="flex justify-end">
+            <Link
+              href="/forgot-password"
+              className="text-xs font-medium text-slate-600 hover:text-primary"
+            >
+              Forgot password?
+            </Link>
+          </div>
+        </div>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <Button type="submit" className="w-full" isLoading={isLoading}>
           Sign In
