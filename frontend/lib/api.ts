@@ -29,17 +29,31 @@ apiClient.interceptors.request.use((config) => {
 
 function mapAxiosError(error: unknown): never {
   if (error instanceof AxiosError) {
+    const rawData = error.response?.data;
+    const isHtmlResponse =
+      typeof rawData === "string" &&
+      (rawData.trim().startsWith("<!DOCTYPE") || rawData.trim().startsWith("<html") || rawData.includes("<title>"));
+
     const serverMessage =
       error.response?.data?.error ||
       error.response?.data?.message ||
-      (typeof error.response?.data === "string" ? error.response.data : null);
+      (typeof rawData === "string" && !isHtmlResponse ? rawData : null);
 
     if (serverMessage) {
       throw new Error(serverMessage);
     }
 
-    if (error.response?.status) {
-      throw new Error(`Request failed with status ${error.response.status}`);
+    const status = error.response?.status;
+    if (status === 404) {
+      throw new Error("Backend service endpoint not found (404). Please ensure backend user-service is running.");
+    }
+
+    if (status === 502 || status === 503) {
+      throw new Error("Backend service unavailable. Please check if backend services are started.");
+    }
+
+    if (status) {
+      throw new Error(`Request failed with status ${status}`);
     }
 
     if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {

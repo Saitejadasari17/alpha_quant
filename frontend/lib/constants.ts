@@ -4,7 +4,7 @@ export const getApiBaseUrl = (): string => {
   }
   if (typeof window !== "undefined") {
     const { protocol, hostname, port } = window.location;
-    if (port === "3000") {
+    if (!port || port === "3000" || port.startsWith("300")) {
       return `${protocol}//${hostname}:8000`;
     }
     return `${protocol}//${hostname}${port ? `:${port}` : ""}`;
